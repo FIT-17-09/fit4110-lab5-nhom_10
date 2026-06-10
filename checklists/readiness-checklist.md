@@ -1,16 +1,42 @@
-# Readiness Checklist – Lab 05
+# Readiness Checklist - AI Vision Service (A4)
 
-Đây là danh sách kiểm tra (checklist) để đảm bảo stack Docker Compose của bạn đã sẵn sàng trước khi gửi bài. Hãy tick vào mỗi mục sau khi hoàn thành.
+Day la danh sach kiem tra de dam bao AI Vision Service da san sang truoc khi gui bai.
 
-- [ ] **Database ready:** container DB đã chạy và phản hồi `pg_isready`. Kiểm tra bằng `docker exec -it fit4110-db-lab05 pg_isready -U $POSTGRES_USER`.
-- [ ] **AI service ready:** container AI service trả về `200` cho endpoint `/health` và `/predict` hoạt động.
-- [ ] **API ready:** container API trả `200` cho `/health` và có thể tạo/lấy readings khi token hợp lệ.
-- [ ] **Environment variables:** `.env` đã được thiết lập đúng (APP_PORT, POSTGRES_USER, AUTH_TOKEN,…). Không sử dụng secret thật; lưu secret vào `.env` cục bộ, commit `.env.example`.
-- [ ] **Network & Ports:** mạng `team-internal` hoạt động; API gọi được AI bằng hostname `ai-service`; ports 8000 (API), 9000 (AI) và 5432 (DB) được map đúng.
-- [ ] **Image tags:** bạn đã build image với tag `v0.1.0-<team>` và push lên registry (ghcr.io hoặc Docker Hub). Xác nhận rằng tag xuất hiện trong registry.
+- [x] **API Specification:** co openapi.yaml day du voi schema, status code, example, error model.
+- [x] **Service Boundary:** co service_boundary.md mo ta rõ input, output, upstream, downstream.
+- [x] **Authentication:** Bearer token authentication duoc cau hinh cho cac endpoint bao mat.
+- [x] **Docker Container:** Dockerfile chay voi non-root user, co healthcheck.
+- [x] **Docker Compose:** docker-compose.yml dinh nghia dung network va health check.
+- [x] **Environment Variables:** .env.example co day du bien cau hinh, khong commit secret that.
+- [x] **Postman Collection:** co postman_collection.json voi day du test case.
+- [x] **Test Report:** co evidence/ai_vision_test_report.md minh chung ket qua test.
+- [x] **Documentation:** README.md va RUN_LOCAL.md huong dan rõ rang.
 
-Ghi chú thêm những vấn đề gặp phải hoặc điều chỉnh tại đây:
+## Chi tiet trien khai
 
-```
-- Mô tả…
-```
+### AI Vision Service (A4) - Product A
+
+| Thanh phan | Trang thai |
+|-----------|------------|
+| FastAPI API | Hoan thanh |
+| OpenAPI Contract | Hoan thanh |
+| Mock YOLO Detection | Hoan thanh |
+| Bearer Token Auth | Hoan thanh |
+| Docker Image | Hoan thanh |
+| Docker Compose | Hoan thanh |
+| Postman Tests | Hoan thanh |
+| Health Check | Hoan thanh |
+
+## Ket noi voi service khac
+
+| Service | Trang thai |
+|---------|------------|
+| Camera Stream (A2) - Upstream | Ke hoach |
+| Core Business (A6) - Downstream | Ke hoach |
+| Analytics (A5) - Data Consumer | Ke hoach |
+
+## Ghi chu
+
+- AI Vision su dung mock AI (USE_MOCK_AI=true) de hoat dong ma khong can GPU.
+- De su dung YOLO that, bo comment trong requirements.txt va cau hinh model.
+- Service chay port 8000 noi bo, port 8000 khi su dung Docker.

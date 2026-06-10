@@ -1,0 +1,409 @@
+openapi: 3.1.0
+info:
+  title: FIT4110 A4 - AI Vision Service
+  version: 1.0.0
+  description: |
+    AI Vision Service cho Smart Campus Operations Platform - Product A.
+    Service nay nhan anh tu Camera Stream, phan tich bang AI (YOLO/mock),
+    va tra ve ket qua phat hien doi tuong.
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+  - url: http://ai-vision:8000
+    description: Docker Compose internal URL
+
+tags:
+  - name: vision
+    description: AI vision analysis endpoints
+  - name: health
+    description: Health check endpoints
+
+security:
+  - bearerAuth: []
+
+paths:
+  /health:
+    get:
+      tags: [health]
+      operationId: getHealth
+      summary: Kiem tra trang thai service
+      description: Endpoint kiem tra service san sang.
+      security: []
+      responses:
+        "200":
+          description: Service dang hoat dong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              example:
+                status: ok
+                service: ai-vision
+                version: "1.0.0"
+
+  /vision/analyze:
+    post:
+      tags: [vision]
+      operationId: analyzeImage
+      summary: Phan tich anh bang AI
+      description: |
+        Nhan anh tu Camera Stream, phan tich doi tuong bang YOLO hoac mock AI.
+        Tra ve danh sach doi tuong phat hien, do tin cay, va muc do rui ro.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ImageAnalysisRequest"
+            examples:
+              person_detected:
+                summary: Phat hien nguoi
+                value:
+                  camera_id: "cam-gate-01"
+                  image_url: "http://example.com/frame.jpg"
+                  image_data: null
+                  timestamp: "2026-05-02T09:10:00+07:00"
+              vehicle_detected:
+                summary: Phat hien xe
+                value:
+                  camera_id: "cam-parking-01"
+                  image_url: "http://example.com/car.jpg"
+                  timestamp: "2026-05-02T09:15:00+07:00"
+      responses:
+        "200":
+          description: Phan tich thanh cong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ImageAnalysisResponse"
+              examples:
+                person_detected:
+                  value:
+                    detected: true
+                    objects:
+                      - object: person
+                        confidence: 0.91
+                        bbox: [100, 50, 200, 300]
+                    risk_level: medium
+                    processing_time_ms: 150
+                    timestamp: "2026-05-02T09:10:01+07:00"
+                no_detection:
+                  value:
+                    detected: false
+                    objects: []
+                    risk_level: low
+                    processing_time_ms: 50
+                    timestamp: "2026-05-02T09:10:01+07:00"
+        "400":
+          description: Request khong hop le
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "401":
+          description: Khong co quyen truy cap
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+        "500":
+          description: Loi server khi phan tich anh
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /vision/batch:
+    post:
+      tags: [vision]
+      operationId: batchAnalyze
+      summary: Phan tich nhieu anh cung luc
+      description: Phan tich mot danh sach cac anh de phat hien doi tuong.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAnalysisRequest"
+      responses:
+        "200":
+          description: Ket qua phan tich nhieu anh
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BatchAnalysisResponse"
+        "401":
+          description: Khong co quyen truy cap
+          content:
+            application/problem+json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetails"
+
+  /vision/objects:
+    get:
+      tags: [vision]
+      operationId: getSupportedObjects
+      summary: Lay danh sach doi tuong ho tro
+      description: Tra ve danh sach cac loai doi tuong ma model co the phat hien.
+      security: []
+      responses:
+        "200":
+          description: Danh sach doi tuong
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SupportedObjectsResponse"
+
+  /vision/stats:
+    get:
+      tags: [vision]
+      operationId: getVisionStats
+      summary: Lay thong ke phan tich
+      description: Tra ve thong ke ve so luot phan tich, doi tuong pho bien, thoi gian xu ly.
+      responses:
+        "200":
+          description: Thong ke phan tich
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VisionStats"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+      description: Token xac thuc cho AI Vision Service
+
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          example: ok
+        service:
+          type: string
+          example: ai-vision
+        version:
+          type: string
+          example: "1.0.0"
+
+    ImageAnalysisRequest:
+      type: object
+      required: [camera_id, timestamp]
+      properties:
+        camera_id:
+          type: string
+          description: ID cua camera gui anh
+          example: "cam-gate-01"
+        image_url:
+          type: string
+          format: uri
+          description: URL cua anh can phan tich
+          example: "http://example.com/frame.jpg"
+        image_data:
+          type: string
+          format: byte
+          description: Base64 encoded image data (thay the image_url neu can)
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+          description: Thoi diem chup anh
+          example: "2026-05-02T09:10:00+07:00"
+
+    DetectedObject:
+      type: object
+      required: [object, confidence]
+      properties:
+        object:
+          type: string
+          description: Loai doi tuong phat hien
+          example: person
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Muc do tin cay (0-1)
+          example: 0.91
+        bbox:
+          type: array
+          items:
+            type: integer
+          minItems: 4
+          maxItems: 4
+          description: Bounding box [x_min, y_min, width, height]
+          example: [100, 50, 200, 300]
+        class_id:
+          type: integer
+          description: ID lop cua doi tuong trong model
+
+    ImageAnalysisResponse:
+      type: object
+      required: [detected, objects, risk_level, processing_time_ms, timestamp]
+      properties:
+        detected:
+          type: boolean
+          description: Co phat hien doi tuong hay khong
+          example: true
+        objects:
+          type: array
+          items:
+            $ref: "#/components/schemas/DetectedObject"
+          description: Danh sach doi tuong phat hien
+        risk_level:
+          type: string
+          enum: [low, medium, high, critical]
+          description: Muc do rui ro dua tren doi tuong phat hien
+          example: medium
+        alert_triggered:
+          type: boolean
+          description: Co can tao canh bao khong
+          example: false
+        processing_time_ms:
+          type: integer
+          description: Thoi gian xu ly tinh bang mili giay
+          example: 150
+        model_version:
+          type: string
+          description: Phien ban model su dung
+          example: "yolov8n"
+        timestamp:
+          type: string
+          format: date-time
+          description: Thoi diem phan tich xong
+          example: "2026-05-02T09:10:01+07:00"
+
+    BatchAnalysisRequest:
+      type: object
+      required: [images]
+      properties:
+        images:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageAnalysisRequest"
+          minItems: 1
+          maxItems: 10
+          description: Danh sach anh can phan tich (toi da 10 anh)
+
+    BatchAnalysisResponse:
+      type: object
+      required: [results, total_images, processing_time_ms]
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/ImageAnalysisResponse"
+          description: Ket qua phan tich tung anh
+        total_images:
+          type: integer
+          description: Tong so anh da phan tich
+          example: 3
+        processed:
+          type: integer
+          description: So anh da xu ly
+          example: 3
+        failed:
+          type: integer
+          description: So anh that bai
+          example: 0
+        processing_time_ms:
+          type: integer
+          description: Tong thoi gian xu ly
+          example: 450
+
+    SupportedObjectsResponse:
+      type: object
+      required: [objects, model_name, model_version]
+      properties:
+        objects:
+          type: array
+          items:
+            type: string
+          description: Danh sach ten doi tuong ho tro
+          example: [person, bicycle, car, motorcycle, bus, truck]
+        model_name:
+          type: string
+          description: Ten model AI
+          example: yolov8n
+        model_version:
+          type: string
+          description: Phien ban model
+          example: "8.0.0"
+        detection_threshold:
+          type: number
+          format: float
+          description: Nguong phat hien mac dinh
+          example: 0.5
+
+    VisionStats:
+      type: object
+      required: [total_analyzed, total_objects, avg_processing_time_ms]
+      properties:
+        total_analyzed:
+          type: integer
+          description: Tong so anh da phan tich
+          example: 1250
+        total_objects:
+          type: integer
+          description: Tong so doi tuong da phat hien
+          example: 3420
+        avg_processing_time_ms:
+          type: number
+          format: float
+          description: Thoi gian xu ly trung binh (ms)
+          example: 125.5
+        top_objects:
+          type: array
+          items:
+            type: object
+            properties:
+              object:
+                type: string
+              count:
+                type: integer
+          description: Cac doi tuong pho bien nhat
+          example:
+            - object: person
+              count: 2100
+            - object: bicycle
+              count: 850
+        risk_distribution:
+          type: object
+          properties:
+            low:
+              type: integer
+            medium:
+              type: integer
+            high:
+              type: integer
+            critical:
+              type: integer
+          description: Phan bo muc do rui ro
+
+    ProblemDetails:
+      type: object
+      required: [type, title, status, detail]
+      properties:
+        type:
+          type: string
+          example: https://smart-campus.local/problems/validation-error
+        title:
+          type: string
+          example: Validation error
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          example: 400
+        detail:
+          type: string
+          example: image_url or image_data is required
+        instance:
+          type: string
+          example: /vision/analyze
